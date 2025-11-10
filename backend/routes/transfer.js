@@ -1,14 +1,13 @@
 const express = require('express');
 const { getDb } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
+const jwtConfig = require('../config/jwt');
 
 const router = express.Router();
 
-// All routes require authentication
-router.use(authenticateToken);
-
 // POST /api/transfer - Transfer money between accounts
-router.post('/', (req, res) => {
+// Requires write:transfers scope
+router.post('/', authenticateToken([jwtConfig.scopes.WRITE_TRANSFERS]), (req, res) => {
   const { fromAccountId, toAccountId, amount, description } = req.body;
   const userId = req.user.userId;
 

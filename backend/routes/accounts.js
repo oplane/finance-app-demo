@@ -1,14 +1,13 @@
 const express = require('express');
 const { getDb } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
+const jwtConfig = require('../config/jwt');
 
 const router = express.Router();
 
-// All routes require authentication
-router.use(authenticateToken);
-
 // GET /api/accounts - Get current user's accounts
-router.get('/', (req, res) => {
+// Requires read:accounts scope
+router.get('/', authenticateToken([jwtConfig.scopes.READ_ACCOUNTS]), (req, res) => {
   const userId = req.user.userId;
   const db = getDb();
 
@@ -28,7 +27,8 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/accounts/:id/transactions - Get transaction history for an account
-router.get('/:id/transactions', (req, res) => {
+// Requires read:transactions scope
+router.get('/:id/transactions', authenticateToken([jwtConfig.scopes.READ_TRANSACTIONS]), (req, res) => {
   const accountId = req.params.id;
   const userId = req.user.userId;
   const db = getDb();

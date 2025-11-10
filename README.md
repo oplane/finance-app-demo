@@ -369,13 +369,66 @@ finance-app-demo/
     └── README.md
 ```
 
-## Security Notes
+## Security & Threat Modeling
 
-- Passwords are hashed using bcryptjs before storing
-- JWT tokens expire after 24 hours
-- All account operations verify user ownership
-- Transfers use database transactions to ensure data integrity
-- Change the `JWT_SECRET` in production to a secure random string
+### 🔒 Security Testing
+
+This application includes comprehensive security testing for JWT authentication. A complete threat model has been generated using **Oplane Gravity**.
+
+**Quick Security Test:**
+```bash
+# Install test dependencies
+pip install -r pentest_requirements.txt
+
+# Run JWT security penetration tests
+python3 pentest_jwt_validation.py --target http://localhost:3000
+```
+
+### 📋 Security Documentation
+
+- **[THREAT_MODEL_REPORT.md](THREAT_MODEL_REPORT.md)** - Complete threat analysis with 11 security requirements
+- **[PENTEST_GUIDE.md](PENTEST_GUIDE.md)** - Comprehensive penetration testing guide
+- **[QUICK_START_PENTEST.md](QUICK_START_PENTEST.md)** - Fast-track security testing (3 steps)
+- **[SECURITY_TESTING_SUMMARY.md](SECURITY_TESTING_SUMMARY.md)** - Overview of all security artifacts
+- **[threat-model-diagram.mmd](threat-model-diagram.mmd)** - Architecture diagram (Mermaid)
+
+### ⚠️ Known Security Considerations
+
+**Current Implementation:**
+- ✅ Passwords are hashed using bcryptjs before storing
+- ✅ JWT tokens expire after 24 hours
+- ✅ All account operations verify user ownership
+- ✅ Transfers use database transactions to ensure data integrity
+
+**Recommended Improvements:**
+- ❌ Change the `JWT_SECRET` in production to a secure random string (use `openssl rand -base64 64`)
+- ❌ Implement Multi-Factor Authentication (MFA)
+- ❌ Add token revocation mechanism for logout
+- ❌ Implement rate limiting on authentication endpoints
+- ❌ Use HTTPS/TLS in production
+- ❌ Add CSRF protection
+- ❌ Move tokens from localStorage to httpOnly cookies
+- ❌ Implement comprehensive audit logging
+
+**For detailed security analysis and remediation steps, see [THREAT_MODEL_REPORT.md](THREAT_MODEL_REPORT.md)**
+
+### 🧪 Automated Security Tests
+
+The penetration test script checks for:
+1. None Algorithm Attack (CVE-2015-9235)
+2. Expired Token Acceptance
+3. Missing/Invalid Issuer Claim
+4. Missing/Invalid Audience Claim
+5. Malformed JWT Structure
+6. Algorithm Confusion Attack
+7. Insufficient Scopes
+8. Tampered Payload Detection
+9. Valid Token Handling
+10. Token Revocation After Logout
+11. Weak Secret Key Detection
+12. JWT Claims Injection
+
+Run `python3 pentest_jwt_validation.py --help` for more options.
 
 ## Error Handling
 
