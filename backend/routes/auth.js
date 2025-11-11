@@ -2,9 +2,38 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getDb } = require('../config/database');
-const { JWT_SECRET } = require('../middleware/auth');
+const { authenticateToken, revokeToken } = require('../middleware/auth');
+const jwtConfig = require('../config/jwt');
 
 const router = express.Router();
+
+/**
+ * Generate JWT token with all required claims
+ * Implementation of OPLANE_REQ-00000041
+ */
+function generateToken(user) {
+  const now = Math.floor(Date.now() / 1000);
+  
+  const payload = {
+    // Standard JWT claims
+    iss: jwtConfig.issuer,        // Issuer
+    aud: jwtConfig.audience,      // Audience
+    sub: user.id.toString(),      // Subject (user ID)
+    iat: now,                     // Issued at
+    exp: now + (15 * 60),         // Expires in 15 minutes
+    
+    // Custom claims
+    userId: user.id,
+    username: user.username,
+    
+    // Scopes for authorization
+    scope: jwtConfig.defaultUserScopes.join(' '),
+  };
+
+  return jwt.sign(payload, jwtConfig.secret, {
+    algorithm: jwtConfig.algorithms[0], // Use first algorithm from config
+  });
+}
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
@@ -60,13 +89,14 @@ router.post('/register', async (req, res) => {
           }
         );
 
-        // Generate JWT token
-        const token = jwt.sign({ userId, username }, JWT_SECRET, { expiresIn: '24h' });
+        // Generate JWT token with required claims
+        const token = generateToken({ id: userId, username });
 
         res.status(201).json({
           message: 'User registered successfully',
           token,
-          user: { id: userId, username, email }
+          user: { id: userId, username, email },
+          expiresIn: jwtConfig.accessTokenExpiry
         });
       }
     );
@@ -106,21 +136,38 @@ router.post('/login', (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user.id, username: user.username },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    // Generate JWT token with required claims
+    const token = generateToken({ id: user.id, username: user.username });
 
     db.close();
     res.json({
       message: 'Login successful',
       token,
-      user: { id: user.id, username: user.username, email: user.email }
+      user: { id: user.id, username: user.username, email: user.email },
+      expiresIn: jwtConfig.accessTokenExpiry
     });
   });
 });
 
+// POST /api/auth/logout
+// Token revocation endpoint for OPLANE_REQ-00000044
+router.post('/logout', authenticateToken(), (req, res) => {
+  try {
+    // Revoke the current token
+    const token = req.token;
+    revokeToken(token);
+
+    res.json({
+      message: 'Logout successful',
+      details: 'Token has been revoked'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Server error during logout' });
+  }
+});
+
 module.exports = router;
+
+
 
